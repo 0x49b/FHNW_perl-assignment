@@ -65,7 +65,7 @@ for my $i (0..$#masterfile){
     }
     elsif( $masterfile[$i] =~  /\[\s*/x){
         # Get all Answers from Examfile to check against masterfile
-$masterfile[$i][$i];
+        
 
         if($masterfile[$i] =~  /\[[x,X]\]/){
             if( $current_question != 0){

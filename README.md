@@ -20,6 +20,7 @@ Author: Florian Thiévent
 * Text::Levenshtein
 * Statistics::Lite
 * Math::Round
+* Array::Contains
 
 ## Implemented Tasks
 
