@@ -26,14 +26,15 @@ use Statistics::Lite qw(:all);
 
 # storage for correct answers and masterfile things
 my @masterfile;
-my @correct_answers;
 my %answers;
 my %questions;
+my @allanswers;
 my $current_question = 0;
 my $num_exam_questions = 0;
 
 # Use arrays to store the results for an exam
 my @examfile;
+my @exam_allanswers;
 my @correct_answered_questions;
 my $current_exam_question = 0;
 my %examquestions;
@@ -63,6 +64,9 @@ for my $i (0..$#masterfile){
         $questions{$current_question} = $masterfile[$i];
     }
     elsif( $masterfile[$i] =~  /\[\s*/x){
+        # Get all Answers from Examfile to check against masterfile
+$masterfile[$i][$i];
+
         if($masterfile[$i] =~  /\[[x,X]\]/){
             if( $current_question != 0){
                 $answers{$current_question} = $masterfile[$i]
@@ -71,6 +75,9 @@ for my $i (0..$#masterfile){
     }
 }
 
+
+
+print Dumper(@allanswers);
 
 
 
@@ -108,6 +115,10 @@ for my $l(0..$#files){
 
         elsif( $examfile[$i] =~  /\[\s*/x){
             if( $current_exam_question != 0){
+                
+                # Get all Answers from Examfile to check against masterfile
+                push @exam_allanswers, $examfile[$i];
+
                 if($examfile[$i] =~  /\[\s*[x,X]\s*\]/){
                     # ignore the answer from the intro head
                     my $answer = $examfile[$i];
