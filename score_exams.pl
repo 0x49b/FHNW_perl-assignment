@@ -1,9 +1,15 @@
 # ==============================================================================
 # Title         : score_exams.pl
-# Description   : Solution for part 1b)
+# Description   : Solution for part 1b), 2, 3
 # Author        : Florian Thiévent
-# Usage         : shuffle.pl <path to masterfile as txt> <list of filled out exams>
-# How it works  : 1. load the file from the first cli arg
+# Usage         : score_exams.pl <path to masterfile as txt> <list of filled out exams>
+# How it works  : 1. load the masterfile from the first cli arg
+#                 2. Extract all Questions and the right answers from masterfile
+#                 3. Load an examfile
+#                 4. load all answers to questions from the examfile, if no answer was given, it will be marked with a -
+#                 5. compare the given answers to the correct answers from the masterfile
+#                 6. make the stats and add them to stats array
+#                 7. print out stats
 #
 #                 Finish.
 # ==============================================================================
@@ -12,9 +18,11 @@ use v5.32;
 
 use List::Util qw(shuffle);
 use Tie::File;
-use Data::Dumper;
 use File::Basename;
-use File::Path qw( make_path );
+use Data::Dumper;
+use Math::Round;
+use Text::Levenshtein qw(distance);
+use Statistics::Lite qw(:all);
 
 # storage for correct answers and masterfile things
 my @masterfile;
@@ -29,9 +37,16 @@ my @examfile;
 my @correct_answered_questions;
 my $current_exam_question = 0;
 my %examquestions;
+my %checkquestions;
 my $num_answered_questions = -1;
 my $num_correct_questions = 0;
 my @results;
+my @report;
+my %reps;
+
+# stats array
+my @stats_answered;
+my @stats_correct;
 
 
 
@@ -40,8 +55,6 @@ die "need path to masterfile as first argument and list of exams as second argum
 
 tie @masterfile, 'Tie::File', @ARGV[0] or die "Cannot open Masterfile";
 say "loaded masterfile @ARGV[0]";
-
-# print Dumper(@masterfile)
 
 for my $i (0..$#masterfile){
 
@@ -58,16 +71,9 @@ for my $i (0..$#masterfile){
     }
 }
 
-say "All questions from masterfile";
-for my $key(sort { $a <=> $b } keys %questions){
-    print "$key => $questions{$key}\n";
-}
 
-say "All correct answers from masterfile";
-for my $key(sort { $a <=> $b } keys %answers){
-    print "$key => $answers{$key}\n";
-    $num_exam_questions++;
-}
+
+
 
 untie @masterfile;
 
@@ -112,13 +118,10 @@ for my $l(0..$#files){
         }
     }
 
-   
     untie @examfile;
 
-    say "All answers from examfile";
     for my $ekey(sort { $a <=> $b } keys %examquestions){
-        print "$ekey => $examquestions{$ekey}\n";
-
+       
         # Count all answered questions
         if($examquestions{$ekey} ne "-") {
             $num_answered_questions++;  
@@ -127,11 +130,30 @@ for my $l(0..$#files){
         # Check all correct answered questions;
         if( lc $examquestions{$ekey} eq lc $answers{$ekey}){
             $num_correct_questions++;
-        }
+        } else {
 
+            # Using Levenshtein Distance to chek if it uses less than 10% difference
+            my $normal_master       = normalizeAnswer($answers{$ekey});
+            my $normal_master_len   = length $normal_master;
+            my $normal_answer       = normalizeAnswer($examquestions{$ekey});
+            my $normal_answer_len   = length $normal_answer;
+            my $distance            = distance($normal_answer, $normal_master);
+            my $tpercent            = $normal_master_len * 0.1;
+
+            if($distance > 0){
+                if($distance < $tpercent){
+                    $num_correct_questions++;
+
+                    makeReport(getExamname(@files[$l]), "Missing question: " . smallTrim($answers{$ekey}));
+                    makeReport(getExamname(@files[$l]), "Used this instead: " . smallTrim($examquestions{$ekey}));
+
+                }
+            }
+
+        }
     }
 
-    my $examname = substr($files[$l], rindex($files[$l], "/")+1, length($files[$l])-rindex($files[$l], "/")-1);
+    my $examname = getExamname($files[$l]);
 
 
     my $grade = ($num_correct_questions *2)/10;
@@ -142,6 +164,9 @@ for my $l(0..$#files){
 
     my $result = "$examname\t\t\t$num_correct_questions/$num_answered_questions\t\t\t$grade";
     push @results, $result;
+    push @stats_answered, $num_answered_questions;
+    push @stats_correct, $num_correct_questions;
+
 
     #reset all to init values
     @examfile = [];
@@ -151,9 +176,104 @@ for my $l(0..$#files){
     $num_correct_questions = 0;
 }
 
-print "\n\nResults:\n";
-print "Filename\t\t\t\t\t\t\tCorrect/Answered\tGrade\n";
-print "==============================================================================================\n";
-for my $d(0..$#results){
-    print "@results[$d]\n";
+
+printResults();
+
+
+
+
+# subs needed for convenience :-)
+sub smallTrim(){
+    my ($string) = @_;
+    $string =~ s/\[\s*[x,X]\s*\]/ /;
+    $string =~ s/^\s+//;
+    return $string;
+}
+
+sub getExamname(){
+    my ($path) = @_;
+    return substr($path, rindex($path, "/")+1, length($path)-rindex($path, "/")-1);
+}
+
+sub normalizeAnswer(){
+    my ($answer) = @_;
+
+
+    # step 1 - make string all lowercase
+    lc $answer;
+
+    # step 2 - remove stopwords [https://stackoverflow.com/questions/26820340/perl-remove-stopwords-from-string]
+    my @stopList = (" the ", " a ", " an ", " of ", " and ", " on ", " in ", " by ", " with ", " at ", " after ", " into ", " their ", " is ",  " that ", " they ", " for ", " to ", " it ", " them ", " which ");
+    my ($rx) = map qr/(?:$_)/, join "|", map qr/\b\Q$_\E\b/, @stopList;
+    $answer =~ s/$rx//g;
+
+    $answer =~ s/\[\s*[x,X]\s*\]/ /;
+    
+    # step 3 - remove whitespaces at the start/end of string
+    $answer =~ s/^\s+|\s+$//g;
+
+    # step 4 - replace all sequences of whitespace with a single whitespace
+    $answer =~ s/\s+/ /g; 
+
+    return $answer;
+}
+
+# Push report entries 
+sub makeReport(){
+    my ($file, $entry) = @_;
+    if(exists($reps{$file})){       
+        my @temp = $reps{$file};
+        push @temp, $entry;
+        $reps{$file} = [@temp];
+    } else {
+        $reps{$file} = ($entry);
+    }
+
+}
+
+sub printStats(){
+
+    my $min_answered = round min(@stats_answered);
+    my $max_answered = round max(@stats_answered);
+    my $average_answered = round mean(@stats_answered);
+    my %freq_answered = frequencies(@stats_answered);
+
+    my $min_correct = round min(@stats_correct);
+    my $max_correct = round max(@stats_correct);
+    my $average_correct = round mean(@stats_correct);
+    my %freq_correct = frequencies(@stats_correct);
+
+    print "\nStats:\n";
+    print "\tAverage number of questions answered....$average_answered\n";
+    print "\t                             Minumum....$min_answered ($freq_answered{$min_answered}".(($freq_answered{$min_answered}>1)?" students":" student").")\n";
+    print "\t                             Maximum....$max_answered ($freq_answered{$max_answered}".(($freq_answered{$max_answered}>1)?" students":" student").")\n";
+    print "\n";
+    print "\tAverage number of correct answers.......$average_correct\n";
+    print "\t                          Minumum.......$min_correct ($freq_correct{$min_correct}".(($freq_correct{$min_correct}>1)?" students":" student").")\n";
+    print "\t                          Maximum.......$max_correct ($freq_correct{$max_correct}".(($freq_correct{$max_correct}>1)?" students":" student").")\n";
+
+}
+
+sub printResults(){
+    print "\n\nResults:\n\n";
+    print "Filename\t\t\t\t\t\t\tCorrect/Answered\tGrade\n";
+    print "==============================================================================================\n";
+    for my $d(0..$#results){
+        print "@results[$d]\n";
+    }
+    print "==============================================================================================\n";
+    print "\nReport:\n";
+
+    for my $key( keys %reps){
+        print "\n$key:\n";
+
+        for my $elem (@{$reps{$key}}){
+            print "\t$elem\n";
+        }
+    }
+
+    printStats();
+
+    print "=========> Done <=========\n";
+
 }
