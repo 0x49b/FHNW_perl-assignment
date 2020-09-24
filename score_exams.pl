@@ -256,19 +256,19 @@ sub printStats(){
 
 sub printResults(){
     print "\n\nResults:\n\n";
-    print "Filename\t\t\t\t\t\t\tCorrect/Answered\tGrade\n";
-    print "==============================================================================================\n";
+    print "\tFilename\t\t\t\t\t\t\tCorrect/Answered\tGrade\n";
+    print "\t==============================================================================================\n";
     for my $d(0..$#results){
-        print "@results[$d]\n";
+        print "\t@results[$d]\n";
     }
-    print "==============================================================================================\n";
+    print "\t==============================================================================================\n";
     print "\nReport:\n";
 
     for my $key( keys %reps){
-        print "\n$key:\n";
+        print "\n\t$key:\n";
 
         for my $elem (@{$reps{$key}}){
-            print "\t$elem\n";
+            print "\t\t$elem\n";
         }
     }
 
