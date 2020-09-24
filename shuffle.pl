@@ -22,7 +22,7 @@
 #                 Finish.
 # ==============================================================================
 
-use v5.28;
+use v5.32;
 
 use List::Util qw(shuffle);
 use Tie::File;
@@ -35,6 +35,7 @@ use File::Path qw( make_path );
 my @infile;
 my @outfile;
 my @possible_answers;
+my $current_question = 0;
 
 die "need path to masterfile as first argument" if $#ARGV < 0 ;
 
@@ -54,11 +55,17 @@ for my $i (0..$#outfile){
             say " Found Question: $outfile[$i]";
             #Make empty array for answers
             push @possible_answers, {answers => []};
+            $current_question++;
     } 
     elsif( $outfile[$i] =~  /\[\s*/x){
             #Remove answer mark x or X from possible answers
             say "   Found Answer: $outfile[$i]";
-            $outfile[$i] =~ s/ \[ [x,X] /\[ /x;
+
+            #ignore the x in the intro header
+            if($current_question>0){
+                $outfile[$i] =~ s/ \[ [x,X] /\[ /x;
+            }
+            
             if($#possible_answers >=0 ){
                 # add line index of answer to last added array of answers
                 push $possible_answers[-1]->{answers}->@*, $i;
@@ -91,11 +98,11 @@ if ( !-d $outpath ) {
 
 say "write new examfile to $outpath";
 
-
-open(OUTFILE, ">> $outpathfile");
-print OUTFILE @outfile;
-close(OUTFILE);
-
+# Write the modified exam to the file
+my $opened = open(my $fhoutfile, '>>', $outpathfile);
+for my $line(0..$#outfile){
+    say $fhoutfile @outfile[$line];
+}
+close($fhoutfile);
 
 say "finished creating new examfile. open it from $outpathfile";
-
