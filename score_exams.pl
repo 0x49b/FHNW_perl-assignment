@@ -65,7 +65,7 @@ for my $i (0..$#masterfile){
     }
     elsif( $masterfile[$i] =~  /\[\s*/x){
         # Get all Answers from Examfile to check against masterfile
-        
+        push @allanswers, $masterfile[$i];
 
         if($masterfile[$i] =~  /\[[x,X]\]/){
             if( $current_question != 0){
@@ -74,13 +74,6 @@ for my $i (0..$#masterfile){
         }
     }
 }
-
-
-
-print Dumper(@allanswers);
-
-
-
 
 untie @masterfile;
 
@@ -149,12 +142,13 @@ for my $l(0..$#files){
             my $normal_answer       = normalizeAnswer($examquestions{$ekey});
             my $normal_answer_len   = length $normal_answer;
             my $distance            = distance($normal_answer, $normal_master);
-            my $tpercent            = $normal_master_len * 0.1;
+            my $tpercent            = round($normal_master_len * 0.1);
 
             if($distance > 0){
                 if($distance < $tpercent){
                     $num_correct_questions++;
 
+                    print "$distance $tpercent\n";
                     makeReport(getExamname(@files[$l]), "Missing question: " . smallTrim($answers{$ekey}));
                     makeReport(getExamname(@files[$l]), "Used this instead: " . smallTrim($examquestions{$ekey}));
 
