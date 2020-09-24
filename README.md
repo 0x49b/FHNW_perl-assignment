@@ -13,7 +13,7 @@ $$ |
 ```
 # Final Assignment
 
-Repository for the final project for the FHNW Course: *Introduction to Perl for Programmers*.
+Repository for the final project for the FHNW Course: *Introduction to Perl for Programmers*.  
 Author: Florian Thiévent
 
 ## Used Modules from CPAN
