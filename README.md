@@ -25,7 +25,7 @@ Author: Florian Thiévent
 
 | Task  | File            | Usage                                                                             | Remarks                                       |
 | ----- | --------------- | --------------------------------------------------------------------------------- | --------------------------------------------- |
-| 1a    | shuffle.pl      | ``` perl shuffle.pl <path to masterfile as txt> ```                               |                                               |
+| 1a    | shuffle.pl      | ``` perl shuffle.pl <path to masterfile as txt> ```                               | The shuffled file is under ./out. If the directory is missing, the script generates it  |
 | 1b    | score_exams.pl  | ``` perl score_exams.pl <path to masterfile as txt> <list of filled out exams>``` | Exams can be list like exam1/file-*.txt       |
 | 2     | score_examps.pl | ``` perl score_exams.pl <path to masterfile as txt> <list of filled out exams>``` | Marked in File where this part is implemented |
 | 3     | score_examps.pl | ``` perl score_exams.pl <path to masterfile as txt> <list of filled out exams>``` | Parts implemented                             |
