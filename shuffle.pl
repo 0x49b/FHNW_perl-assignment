@@ -22,11 +22,10 @@
 #                 Finish.
 # ==============================================================================
 
-use v5.32;
+use v5.28;
 
 use List::Util qw(shuffle);
 use Tie::File;
-use Data::Dumper;
 use File::Basename;
 use File::Path qw( make_path );
 

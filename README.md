@@ -20,6 +20,7 @@ Author: Florian Thiévent
 * Text::Levenshtein
 * Statistics::Lite
 * Math::Round
+The modules can be installed all at once with the script install-modules.sh
 
 ## Implemented Tasks
 

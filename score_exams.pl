@@ -19,7 +19,6 @@ use v5.28;
 use List::Util qw(shuffle);
 use Tie::File;
 use File::Basename;
-use Data::Dumper;
 use Math::Round;
 use Text::Levenshtein qw(distance);
 use Statistics::Lite qw(:all);
