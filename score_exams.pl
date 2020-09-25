@@ -14,7 +14,7 @@
 #                 Finish.
 # ==============================================================================
 
-use v5.32;
+use v5.28;
 
 use List::Util qw(shuffle);
 use Tie::File;
@@ -42,8 +42,7 @@ my %checkquestions;
 my $num_answered_questions = -1;
 my $num_correct_questions = 0;
 my @results;
-my @report;
-my %reps;
+my %report;
 
 # stats array
 my @stats_answered;
@@ -61,7 +60,7 @@ for my $i (0..$#masterfile){
 
     if($masterfile[$i] =~ /^\d+\./){
         $current_question++;
-        $questions{$current_question} = $masterfile[$i];
+        $questions{$current_question} = smallTrim($masterfile[$i]);
     }
     elsif( $masterfile[$i] =~  /\[\s*/x){
         # Get all Answers from Examfile to check against masterfile
@@ -93,20 +92,19 @@ my @files = @ARGV[1..$#ARGV];
 
 for my $l(0..$#files){
     print "Checking file @files[$l]\n";
-
     tie @examfile, 'Tie::File', @files[$l] or die "Cannot open examfile @files[$l]";
      
 
     for my $i (0..$#examfile+1){
 
-        
         if($examfile[$i] =~ /^.\d+\./){
-        
             $current_exam_question++;
             $examquestions{$current_exam_question} = "-";
+            $checkquestions{$current_exam_question} = $examfile[$i];
         }
 
         elsif( $examfile[$i] =~  /\[\s*/x){
+            
             if( $current_exam_question != 0){
                 
                 # Get all Answers from Examfile to check against masterfile
@@ -115,8 +113,7 @@ for my $l(0..$#files){
                 if($examfile[$i] =~  /\[\s*[x,X]\s*\]/){
                     # ignore the answer from the intro head
                     my $answer = $examfile[$i];
-                    $examquestions{$current_exam_question} = $examfile[$i];
-                    
+                    $examquestions{$current_exam_question} = smallTrim($examfile[$i]);
                 } 
             }
         }
@@ -132,7 +129,7 @@ for my $l(0..$#files){
         }
 
         # Check all correct answered questions;
-        if( lc $examquestions{$ekey} eq lc $answers{$ekey}){
+        if( lc smallTrim($examquestions{$ekey}) eq lc smallTrim($answers{$ekey})){
             $num_correct_questions++;
         } else {
 
@@ -147,14 +144,10 @@ for my $l(0..$#files){
             if($distance > 0){
                 if($distance < $tpercent){
                     $num_correct_questions++;
-
-                    print "$distance $tpercent\n";
-                    makeReport(getExamname(@files[$l]), "Missing question: " . smallTrim($answers{$ekey}));
-                    makeReport(getExamname(@files[$l]), "Used this instead: " . smallTrim($examquestions{$ekey}));
-
+                    makeReport(getExamname(@files[$l]), "Missing answer:\t\t" . smallTrim($answers{$ekey}));
+                    makeReport(getExamname(@files[$l]), "Used this instead:\t" . smallTrim($examquestions{$ekey}));
                 }
             }
-
         }
     }
 
@@ -185,13 +178,11 @@ for my $l(0..$#files){
 printResults();
 
 
-
-
 # subs needed for convenience :-)
 sub smallTrim(){
     my ($string) = @_;
     $string =~ s/\[\s*[x,X]\s*\]/ /;
-    $string =~ s/^\s+//;
+    $string =~ s/^\s+|\s+$//g;
     return $string;
 }
 
@@ -226,12 +217,13 @@ sub normalizeAnswer(){
 # Push report entries 
 sub makeReport(){
     my ($file, $entry) = @_;
-    if(exists($reps{$file})){       
-        my @temp = $reps{$file};
-        push @temp, $entry;
-        $reps{$file} = [@temp];
+    
+    if( exists($report{$file}) ){
+        my $temp = $report{$file};
+        delete $report{$file};
+        $report{$file} = "$temp\n\t\t$entry";
     } else {
-        $reps{$file} = ($entry);
+        $report{$file} = "\t\t".$entry;
     }
 
 }
@@ -269,16 +261,14 @@ sub printResults(){
     print "\t==============================================================================================\n";
     print "\nReport:\n";
 
-    for my $key( keys %reps){
-        print "\n\t$key:\n";
+    for my $key( keys %report){
+            print "\n\t$key:\n";
+            print "$report{$key}\n";
 
-        for my $elem (@{$reps{$key}}){
-            print "\t\t$elem\n";
-        }
     }
 
     printStats();
-
-    print "=========> Done <=========\n";
+    print "==================================================================================================\n";
+    print "=============================================> Done <=============================================\n";
 
 }
